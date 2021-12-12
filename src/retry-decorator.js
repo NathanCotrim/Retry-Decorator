@@ -26,14 +26,19 @@ const calculateBackoff = ({
     return jitteredBackoff
 }
 
-const shouldHalt = (retries, attempt) =>
-  attempt >= retries
+const defaultTransientErrorHandler = (_error) => true 
+
+const shouldHalt = ({
+    retries,
+    isTransientError = defaultTransientErrorHandler
+}, attempt, error) =>
+  attempt >= retries || !isTransientError(error)
 
 const invokeAction = (config, action, args, attempt) =>
   action(...args)
-    .catch(err =>
-      shouldHalt(config.retries, attempt)
-        ? Promise.reject(err)
+    .catch(error =>
+      shouldHalt(config, attempt, error)
+        ? Promise.reject(error)
             : delay(calculateBackoff(config, attempt))
                 .then(() => invokeAction(config, action, args, attempt + 1))
     )
@@ -53,7 +58,8 @@ const maybeWillWork = retry(
         maxDelay: 1000,
         minDelay: 100,
         factor: 2,
-        jitter: true
+        jitter: true,
+        isTransientError: (error) => ['ETIMEDOUT', 'ECONNREFUSED'].includes(error.code)
     },
   failWhen(.5)
 )
