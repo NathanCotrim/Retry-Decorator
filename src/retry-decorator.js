@@ -1,4 +1,3 @@
-// Retry Decorator Implementation =============================================
 const { failWhen } = require('./helpers')
 
 const delay = time =>
@@ -50,8 +49,6 @@ const retry = (
 ) => (...args) =>
   invokeAction(config, action, args, 0)
 
-
-// Executing ==================================================================
 const maybeWillWork = retry(
     {
         retries: 5,
