@@ -1,30 +1,34 @@
 // Retry Decorator Implementation =============================================
 const { failWhen } = require('./helpers')
 
-    // Helper 
 const delay = time =>
     new Promise(resolve =>
         setTimeout(resolve, time)
     )
 
+const randomBetween = (min, max) => 
+    Math.floor(Math.random() * (max - min + 1) + min)
+
+
+const addJitter = backoff => randomBetween(0, backoff)  
+    
 const calculateBackoff = ({
     minDelay,
     maxDelay,
-    factor
+    factor,
+    jitter
 }, attempt) => {
     const attemptBackoff = minDelay * factor ** attempt
-    const backoff = Math.min
-    (attemptBackoff, maxDelay)
+    const backoff = Math.min(attemptBackoff, maxDelay)
+    const jitteredBackoff = jitter ? addJitter(backoff) : backoff
 
-    console.log('backoff', backoff);
-    return backoff
+    console.log('backoff', jitteredBackoff);
+    return jitteredBackoff
 }
 
-    // Helper
 const shouldHalt = (retries, attempt) =>
   attempt >= retries
 
-    // Helper
 const invokeAction = (config, action, args, attempt) =>
   action(...args)
     .catch(err =>
@@ -46,9 +50,10 @@ const retry = (
 const maybeWillWork = retry(
     {
         retries: 5,
-        maxDelay: 500,
+        maxDelay: 1000,
         minDelay: 100,
-        factor: 2
+        factor: 2,
+        jitter: true
     },
   failWhen(.5)
 )
